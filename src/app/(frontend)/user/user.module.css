@@ -1,0 +1,24 @@
+.main{
+    display:flex;
+    flex-direction: row;
+    max-height: 100vh;
+    overflow: hidden;
+    background-color: var(--mantine-color-gray-0);
+}
+.scrollOverflow{
+    max-height: 100vh;
+    overflow: scroll;
+}
+.spacedColumn{
+    display:flex;
+    flex-direction: column;
+    width:100%;
+    gap:32px;
+    padding: 64px 24px;
+    box-sizing: border-box;
+
+    &>div{
+        width:60vw;
+    }
+
+}

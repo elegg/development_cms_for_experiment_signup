@@ -69,22 +69,57 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    authusers: Authuser;
+    timeslot: Timeslot;
+    study_slot: StudySlot;
+    contact: Contact;
+    participant: Participant;
+    researcher: Researcher;
+    experiment: Experiment;
+    participant_study: ParticipantStudy;
+    experiment_researcher: ExperimentResearcher;
+    message: Message;
+    message_channel: MessageChannel;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    participant: {
+      study_slot: 'study_slot';
+      channel: 'message_channel';
+    };
+    researcher: {
+      experiment: 'experiment_researcher';
+      channel: 'message_channel';
+    };
+    experiment: {
+      participant: 'study_slot';
+      research_team: 'experiment_researcher';
+    };
+  };
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    authusers: AuthusersSelect<false> | AuthusersSelect<true>;
+    timeslot: TimeslotSelect<false> | TimeslotSelect<true>;
+    study_slot: StudySlotSelect<false> | StudySlotSelect<true>;
+    contact: ContactSelect<false> | ContactSelect<true>;
+    participant: ParticipantSelect<false> | ParticipantSelect<true>;
+    researcher: ResearcherSelect<false> | ResearcherSelect<true>;
+    experiment: ExperimentSelect<false> | ExperimentSelect<true>;
+    participant_study: ParticipantStudySelect<false> | ParticipantStudySelect<true>;
+    experiment_researcher: ExperimentResearcherSelect<false> | ExperimentResearcherSelect<true>;
+    message: MessageSelect<false> | MessageSelect<true>;
+    message_channel: MessageChannelSelect<false> | MessageChannelSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   fallbackLocale: null;
   globals: {};
@@ -100,32 +135,61 @@ export interface Config {
   };
 }
 export interface UserAuthOperations {
-  forgotPassword: {
-    email: string;
-    password: string;
-  };
-  login: {
-    email: string;
-    password: string;
-  };
+  forgotPassword:
+    | {
+        email: string;
+      }
+    | {
+        username: string;
+      };
+  login:
+    | {
+        email: string;
+        password: string;
+      }
+    | {
+        password: string;
+        username: string;
+      };
   registerFirstUser: {
-    email: string;
     password: string;
-  };
-  unlock: {
+    username: string;
     email: string;
-    password: string;
   };
+  unlock:
+    | {
+        email: string;
+      }
+    | {
+        username: string;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: number;
+  externalId?: {
+    authStrategies?:
+      | {
+          providerUserId?: string | null;
+          accessToken?: string | null;
+          refreshToken?: string | null;
+          tokenType?: string | null;
+          idToken?: string | null;
+          tokenExpiry?: string | null;
+          refreshTokenExpiry?: string | null;
+          tokenIssuedAt?: string | null;
+          authProvider?: 'ms' | null;
+          id?: string | null;
+        }[]
+      | null;
+  };
   updatedAt: string;
   createdAt: string;
   email: string;
+  username: string;
   resetPasswordToken?: string | null;
   resetPasswordExpiration?: string | null;
   salt?: string | null;
@@ -147,7 +211,7 @@ export interface User {
  * via the `definition` "media".
  */
 export interface Media {
-  id: string;
+  id: number;
   alt: string;
   updatedAt: string;
   createdAt: string;
@@ -163,10 +227,201 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "authusers".
+ */
+export interface Authuser {
+  id: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timeslot".
+ */
+export interface Timeslot {
+  id: number;
+  time?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "study_slot".
+ */
+export interface StudySlot {
+  id: number;
+  start?: (number | null) | Timeslot;
+  end?: (number | null) | Timeslot;
+  experiment?: (number | null) | Experiment;
+  participant?: (number | null) | Participant;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "experiment".
+ */
+export interface Experiment {
+  id: number;
+  title?: string | null;
+  shortDescription?: string | null;
+  places?: number | null;
+  experiment_info?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  signUps?: number | null;
+  participant?: {
+    docs?: (number | StudySlot)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  research_team?: {
+    docs?: (number | ExperimentResearcher)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "experiment_researcher".
+ */
+export interface ExperimentResearcher {
+  id: number;
+  lead?: boolean | null;
+  experiment?: (number | null) | Experiment;
+  researcher?: (number | null) | Researcher;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "researcher".
+ */
+export interface Researcher {
+  id: number;
+  title?: string | null;
+  firstname?: string | null;
+  surname?: string | null;
+  type?: ('STUDENT' | 'STAFF' | 'EXTERNAL') | null;
+  contact?: (number | null) | Contact;
+  experiment?: {
+    docs?: (number | ExperimentResearcher)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  channel?: {
+    docs?: (number | MessageChannel)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact".
+ */
+export interface Contact {
+  id: number;
+  email?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "message_channel".
+ */
+export interface MessageChannel {
+  id: number;
+  communicators?:
+    | (
+        | {
+            relationTo: 'researcher';
+            value: number | Researcher;
+          }
+        | {
+            relationTo: 'participant';
+            value: number | Participant;
+          }
+      )[]
+    | null;
+  messages?: (number | Message)[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "participant".
+ */
+export interface Participant {
+  id: number;
+  Name?: string | null;
+  contact?: (number | null) | Contact;
+  study_slot?: {
+    docs?: (number | StudySlot)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  channel?: {
+    docs?: (number | MessageChannel)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "message".
+ */
+export interface Message {
+  id: number;
+  text?: string | null;
+  author?:
+    | ({
+        relationTo: 'participant';
+        value: number | Participant;
+      } | null)
+    | ({
+        relationTo: 'researcher';
+        value: number | Researcher;
+      } | null);
+  channel?: (number | null) | MessageChannel;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "participant_study".
+ */
+export interface ParticipantStudy {
+  id: number;
+  completed?: boolean | null;
+  slot?: (number | null) | StudySlot;
+  participant?: (number | null) | Participant;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
-  id: string;
+  id: number;
   key: string;
   data:
     | {
@@ -183,20 +438,64 @@ export interface PayloadKv {
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null)
     | ({
         relationTo: 'media';
-        value: string | Media;
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'authusers';
+        value: number | Authuser;
+      } | null)
+    | ({
+        relationTo: 'timeslot';
+        value: number | Timeslot;
+      } | null)
+    | ({
+        relationTo: 'study_slot';
+        value: number | StudySlot;
+      } | null)
+    | ({
+        relationTo: 'contact';
+        value: number | Contact;
+      } | null)
+    | ({
+        relationTo: 'participant';
+        value: number | Participant;
+      } | null)
+    | ({
+        relationTo: 'researcher';
+        value: number | Researcher;
+      } | null)
+    | ({
+        relationTo: 'experiment';
+        value: number | Experiment;
+      } | null)
+    | ({
+        relationTo: 'participant_study';
+        value: number | ParticipantStudy;
+      } | null)
+    | ({
+        relationTo: 'experiment_researcher';
+        value: number | ExperimentResearcher;
+      } | null)
+    | ({
+        relationTo: 'message';
+        value: number | Message;
+      } | null)
+    | ({
+        relationTo: 'message_channel';
+        value: number | MessageChannel;
       } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   updatedAt: string;
   createdAt: string;
@@ -206,10 +505,10 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: number;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   key?: string | null;
   value?:
@@ -229,7 +528,7 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
@@ -240,9 +539,28 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  externalId?:
+    | T
+    | {
+        authStrategies?:
+          | T
+          | {
+              providerUserId?: T;
+              accessToken?: T;
+              refreshToken?: T;
+              tokenType?: T;
+              idToken?: T;
+              tokenExpiry?: T;
+              refreshTokenExpiry?: T;
+              tokenIssuedAt?: T;
+              authProvider?: T;
+              id?: T;
+            };
+      };
   updatedAt?: T;
   createdAt?: T;
   email?: T;
+  username?: T;
   resetPasswordToken?: T;
   resetPasswordExpiration?: T;
   salt?: T;
@@ -274,6 +592,129 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "authusers_select".
+ */
+export interface AuthusersSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timeslot_select".
+ */
+export interface TimeslotSelect<T extends boolean = true> {
+  time?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "study_slot_select".
+ */
+export interface StudySlotSelect<T extends boolean = true> {
+  start?: T;
+  end?: T;
+  experiment?: T;
+  participant?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact_select".
+ */
+export interface ContactSelect<T extends boolean = true> {
+  email?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "participant_select".
+ */
+export interface ParticipantSelect<T extends boolean = true> {
+  Name?: T;
+  contact?: T;
+  study_slot?: T;
+  channel?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "researcher_select".
+ */
+export interface ResearcherSelect<T extends boolean = true> {
+  title?: T;
+  firstname?: T;
+  surname?: T;
+  type?: T;
+  contact?: T;
+  experiment?: T;
+  channel?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "experiment_select".
+ */
+export interface ExperimentSelect<T extends boolean = true> {
+  title?: T;
+  shortDescription?: T;
+  places?: T;
+  experiment_info?: T;
+  signUps?: T;
+  participant?: T;
+  research_team?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "participant_study_select".
+ */
+export interface ParticipantStudySelect<T extends boolean = true> {
+  completed?: T;
+  slot?: T;
+  participant?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "experiment_researcher_select".
+ */
+export interface ExperimentResearcherSelect<T extends boolean = true> {
+  lead?: T;
+  experiment?: T;
+  researcher?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "message_select".
+ */
+export interface MessageSelect<T extends boolean = true> {
+  text?: T;
+  author?: T;
+  channel?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "message_channel_select".
+ */
+export interface MessageChannelSelect<T extends boolean = true> {
+  communicators?: T;
+  messages?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
